@@ -1,11 +1,14 @@
 package routes
 
 import (
+	"log"
+	"time"
 	"way-d-interactions/config"
 	"way-d-interactions/controllers"
 	"way-d-interactions/middleware"
 	"way-d-interactions/models"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +23,7 @@ func RegisterRoutes(r *gin.Engine) {
 		api.GET("/messages/:match_id", controllers.GetMessages)
 		api.POST("/block", controllers.PostBlock)
 		api.GET("/blocks", controllers.GetBlocks)
+		api.GET("/exclusions", controllers.GetExclusions)
 	}
 
 	r.GET("/debug/likes", func(c *gin.Context) {
@@ -49,4 +53,26 @@ func RegisterRoutes(r *gin.Engine) {
 		db.Exec("DELETE FROM blocks")
 		c.JSON(200, gin.H{"status": "cleared"})
 	})
+}
+
+func SetupRouter() *gin.Engine {
+	r := gin.Default()
+
+	r.SetTrustedProxies([]string{"127.0.0.1"})
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8083"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	r.Use(func(c *gin.Context) {
+		log.Printf("[INFO] %s %s from %s", c.Request.Method, c.Request.URL.Path, c.ClientIP())
+		c.Next()
+	})
+
+	return r
 }

@@ -294,3 +294,28 @@ func GetBlocks(c *gin.Context) {
 	db.Where("user_id = ?", userID).Find(&blocks)
 	c.JSON(http.StatusOK, blocks)
 }
+
+// GetExclusions returns a list of user IDs to exclude from discover (liked, disliked, matched, blocked, or who blocked you)
+// @Summary Get exclusions
+// @Description Get all user IDs the current user should exclude (liked, disliked, matched, blocked, or who blocked you).
+// @Tags interactions
+// @Produce json
+// @Success 200 {array} string
+// @Router /api/exclusions [get]
+func GetExclusions(c *gin.Context) {
+	userID := c.GetString("user_id")
+	var exclusions []string
+	db := config.GetDB()
+	db.Raw(`
+		SELECT target_id FROM likes WHERE user_id = ?
+		UNION
+		SELECT target_id FROM dislikes WHERE user_id = ?
+		UNION
+		SELECT CASE WHEN user1_id = ? THEN user2_id ELSE user1_id END FROM matches WHERE user1_id = ? OR user2_id = ?
+		UNION
+		SELECT blocked_id FROM blocks WHERE user_id = ?
+		UNION
+		SELECT user_id FROM blocks WHERE blocked_id = ?
+	`, userID, userID, userID, userID, userID, userID, userID).Scan(&exclusions)
+	c.JSON(http.StatusOK, exclusions)
+}

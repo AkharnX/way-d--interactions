@@ -9,8 +9,6 @@ import (
 	"way-d-interactions/config"
 	"way-d-interactions/models"
 	"way-d-interactions/routes"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -25,8 +23,8 @@ func main() {
 		log.Fatalf("Migration error: %v", err)
 	}
 
-	r := gin.Default()
-	routes.RegisterRoutes(r)
+	r := routes.SetupRouter() // Use SetupRouter to ensure CORS and all middleware are applied
+	routes.RegisterRoutes(r)  // Register all /api routes
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8082"
